@@ -7,8 +7,10 @@ copyright: Released under the MIT License.
 
 theme:
   name: material
+  custom_dir: overrides
+  logo: assets/logo.png
+  favicon: assets/favicon.png
   icon:
-    logo: material/compass-outline
     repo: fontawesome/brands/github
   palette:
     - media: "(prefers-color-scheme: light)"

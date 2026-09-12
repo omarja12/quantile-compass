@@ -1,3 +1,5 @@
+<img src="docs/assets/logo-dark.png" alt="" width="84" align="left">
+
 # Quantile Compass
 
 [![CI](https://github.com/omarja12/quantile-compass/actions/workflows/ci.yml/badge.svg)](https://github.com/omarja12/quantile-compass/actions/workflows/ci.yml)
