@@ -1,0 +1,18 @@
+{
+  "sample_start": "2006-05-17",
+  "sample_end": "2026-09-11",
+  "n_returns": 4988,
+  "equity_vol_mean_pct": 26.26,
+  "equity_vol_max_pct": 107.82,
+  "equity_vol_max_date": "2020-03-19",
+  "forex_vol_mean_pct": 15.78,
+  "forex_vol_max_pct": 124.2,
+  "forex_vol_max_date": "2022-03-31",
+  "corr_mean": -0.064,
+  "corr_min": -0.696,
+  "corr_max": 0.5,
+  "var_parametric_1d_pct": 4.11,
+  "var_parametric_10d_pct": 13.0,
+  "var_historical_1d_pct": 5.96,
+  "var_age_weighted_1d_pct": 2.92
+}

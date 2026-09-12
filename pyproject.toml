@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quantile-compass"
+version = "0.1.0"
+description = "Portfolio Value-at-Risk toolkit: EWMA volatility, parametric and historical VaR across equity and currency risk."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Omar Jarir" }]
+keywords = ["value-at-risk", "risk-management", "quantitative-finance", "ewma", "volatility"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Office/Business :: Financial :: Investment",
+]
+dependencies = [
+    "pandas>=2.0",
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "matplotlib>=3.7",
+    "yfinance>=0.2",
+]
+
+[project.optional-dependencies]
+app = ["streamlit>=1.30", "plotly>=5.18"]
+docs = ["mkdocs-material>=9.5", "mkdocstrings[python]>=0.24"]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.4",
+    "jupyter>=1.0",
+    "seaborn>=0.13",
+]
+
+[project.urls]
+Repository = "https://github.com/omarja12/quantile-compass"
+
+[project.scripts]
+quantile-compass-fetch = "quantile_compass.fetch_data:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = ["E501"]
