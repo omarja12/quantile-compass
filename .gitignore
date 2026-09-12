@@ -1,0 +1,27 @@
+# Fetched data - the repo ships the fetch script, not the dataset
+data/raw/*
+!data/raw/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+
+# Environments
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+site/
+
+# OS
+.DS_Store
+Thumbs.db
