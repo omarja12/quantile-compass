@@ -14,5 +14,21 @@
   "var_parametric_1d_pct": 4.11,
   "var_parametric_10d_pct": 13.0,
   "var_historical_1d_pct": 5.96,
-  "var_age_weighted_1d_pct": 2.92
+  "var_age_weighted_1d_pct": 2.92,
+  "backtest_days": 4738,
+  "backtest_breaches": 88,
+  "breach_rates": {
+    "95%": {
+      "expected_pct": 5.0,
+      "actual_pct": 5.21
+    },
+    "99%": {
+      "expected_pct": 1.0,
+      "actual_pct": 1.86
+    },
+    "99.9%": {
+      "expected_pct": 0.1,
+      "actual_pct": 0.59
+    }
+  }
 }

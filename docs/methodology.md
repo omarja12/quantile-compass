@@ -85,6 +85,18 @@ Returns are sorted, the weights accumulated, and the quantile read off the weigh
 cumulative distribution. This keeps the distribution-free character of historical
 simulation while letting recent conditions dominate the tail.
 
+### Backtesting
+
+Any VaR estimate can be checked against what actually happened. Recomputing the
+parametric VaR at every date from that date's EWMA covariance gives a forecast series;
+a **breach** is a day whose realised loss exceeded the forecast made before it.
+
+Because the EWMA recursion is seeded without look-ahead (above), those forecasts use
+only prior information, which is what makes the comparison meaningful rather than
+circular. At a confidence level of \(1-\alpha\), a well-specified model should breach
+on about \(\alpha\) of days. See [Results](results.md#does-the-model-actually-work) for
+what this sample shows.
+
 ### Horizon scaling
 
 $$VaR_{h} = VaR_{1} \times \sqrt{h}$$

@@ -18,8 +18,10 @@ from quantile_compass.data import prepare_dataset  # noqa: E402
 from quantile_compass.returns import decompose_portfolio_returns  # noqa: E402
 from quantile_compass.var import (  # noqa: E402
     age_weighted_historical_var,
+    count_var_breaches,
     historical_var,
     parametric_var,
+    rolling_parametric_var,
     scale_var_horizon,
 )
 from quantile_compass.viz import (  # noqa: E402
@@ -28,6 +30,7 @@ from quantile_compass.viz import (  # noqa: E402
     plot_return_distribution,
     plot_var_comparison,
     plot_volatility,
+    shade_crises,
 )
 from quantile_compass.volatility import (  # noqa: E402
     annualize_volatility,
@@ -92,6 +95,38 @@ def main() -> None:
     plot_var_comparison(var_methods, ax=ax)
     save(fig, "var_comparison.png")
 
+    # VaR through time, with the days the forecast was breached
+    var_line = rolling_parametric_var(returns["equity"], returns["forex"])
+    backtest = count_var_breaches(returns["total"], var_line)
+    breached = returns["total"][returns["total"] < -var_line.reindex(returns.index)]
+
+    fig, ax = plt.subplots(figsize=(10, 4.5), constrained_layout=True)
+    ax.plot(returns.index, returns["total"] * 100, lw=0.5, color="#cbd5e1", label="Daily return")
+    ax.plot(var_line.index, -var_line * 100, lw=1.3, color="#2563eb", label="1-day 99% VaR")
+    ax.plot(
+        breached.index,
+        breached * 100,
+        "x",
+        ms=4,
+        color="#dc2626",
+        label=f"Breach ({backtest['breaches']})",
+    )
+    shade_crises(ax)
+    ax.set_ylabel("Daily return / VaR threshold (%)")
+    ax.legend(frameon=False, loc="lower left", ncols=3)
+    ax.grid(alpha=0.25, lw=0.6)
+    for spine in ("top", "right"):
+        ax.spines[spine].set_visible(False)
+    save(fig, "var_backtest.png")
+
+    breach_rates = {}
+    for conf, a in [("95%", 0.05), ("99%", 0.01), ("99.9%", 0.001)]:
+        v = rolling_parametric_var(returns["equity"], returns["forex"], alpha=a)
+        breach_rates[conf] = {
+            "expected_pct": round(a * 100, 2),
+            "actual_pct": round(count_var_breaches(returns["total"], v)["breach_rate"] * 100, 2),
+        }
+
     summary = {
         "sample_start": str(returns.index.min().date()),
         "sample_end": str(returns.index.max().date()),
@@ -109,6 +144,9 @@ def main() -> None:
         "var_parametric_10d_pct": round(scale_var_horizon(var_methods["Parametric"], 10) * 100, 2),
         "var_historical_1d_pct": round(var_methods["Historical"] * 100, 2),
         "var_age_weighted_1d_pct": round(var_methods["Age-weighted"] * 100, 2),
+        "backtest_days": backtest["observations"],
+        "backtest_breaches": backtest["breaches"],
+        "breach_rates": breach_rates,
     }
     (FIG_DIR / "summary.json").write_text(json.dumps(summary, indent=2))
     print(json.dumps(summary, indent=2))
