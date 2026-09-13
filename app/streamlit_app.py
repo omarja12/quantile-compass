@@ -29,8 +29,10 @@ from quantile_compass.returns import (  # noqa: E402
 )
 from quantile_compass.var import (  # noqa: E402
     age_weighted_historical_var,
+    count_var_breaches,
     historical_var,
     parametric_var,
+    rolling_parametric_var,
     scale_var_horizon,
 )
 from quantile_compass.volatility import (  # noqa: E402
@@ -167,8 +169,8 @@ st.caption(
     "equally. Age-weighted sits between the two."
 )
 
-tab_vol, tab_corr, tab_dist, tab_factors = st.tabs(
-    ["Volatility", "Correlation", "Return distribution", "Risk factors"]
+tab_vol, tab_var, tab_corr, tab_dist, tab_factors = st.tabs(
+    ["Volatility", "VaR through time", "Correlation", "Return distribution", "Risk factors"]
 )
 
 with tab_vol:
@@ -194,6 +196,63 @@ with tab_vol:
         f"Estimated with λ = {lam:.2f}. Responds to the decay and portfolio controls; "
         "the confidence level and horizon do not affect it."
     )
+
+with tab_var:
+    var_line = rolling_parametric_var(
+        returns["equity"], returns["forex"], alpha=alpha, horizon_days=horizon, lam=lam
+    )
+    var_1d = rolling_parametric_var(returns["equity"], returns["forex"], alpha=alpha, lam=lam)
+    backtest = count_var_breaches(returns["total"], var_1d)
+    breached = returns["total"][returns["total"] < -var_1d.reindex(returns.index)]
+
+    fig = go.Figure()
+    fig.add_scatter(
+        x=returns.index,
+        y=returns["total"] * 100,
+        name="Daily return",
+        mode="lines",
+        line=dict(color="#cbd5e1", width=0.7),
+    )
+    fig.add_scatter(
+        x=var_line.index,
+        y=-var_line * 100,
+        name=f"VaR forecast ({horizon}-day)",
+        line=dict(color="#2563eb", width=1.4),
+    )
+    fig.add_scatter(
+        x=breached.index,
+        y=breached * 100,
+        name="Breach",
+        mode="markers",
+        marker=dict(color="#dc2626", size=5, symbol="x"),
+    )
+    shade(fig)
+    fig.update_layout(
+        yaxis_title="Daily return / VaR threshold (%)", height=460, hovermode="x unified"
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+    b1, b2, b3 = st.columns(3)
+    b1.metric("Days tested", f"{backtest['observations']:,}")
+    b2.metric("Breaches", f"{backtest['breaches']:,}")
+    b3.metric(
+        "Breach rate",
+        f"{backtest['breach_rate']:.2%}",
+        delta=f"{backtest['breach_rate'] - alpha:+.2%} vs expected",
+        delta_color="inverse",
+    )
+    st.caption(
+        f"The blue line is what the model forecast each morning, using only data before that day. "
+        f"Red crosses mark days the loss exceeded the 1-day forecast. At {confidence:.1f}% confidence "
+        f"you'd expect {alpha:.2%} of days to breach; this model breaches {backtest['breach_rate']:.2%}. "
+        "Every control in the sidebar changes this chart."
+    )
+    if backtest["breach_rate"] > alpha * 1.5:
+        st.warning(
+            "Breaching materially more often than advertised - the normal distribution behind "
+            "parametric VaR has thinner tails than real markets. Push the confidence level higher "
+            "and the gap widens: the deeper into the tail you go, the worse the assumption gets."
+        )
 
 with tab_corr:
     fig = go.Figure()

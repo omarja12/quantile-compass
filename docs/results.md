@@ -94,6 +94,40 @@ a thin-tailed normal distribution.
     between them is itself the useful output: it measures how much the answer depends
     on that choice rather than on the data.
 
+## Does the model actually work?
+
+Reporting a VaR number is easy; the harder question is whether it holds up. Because
+the EWMA estimates carry no look-ahead, the VaR for any given day is what the model
+would genuinely have forecast that morning — so it can be checked against what actually
+happened next.
+
+![VaR through time with breaches marked](assets/var_backtest.png)
+
+A breach is a day where the realised loss exceeded the forecast. Over 4,738 tested days:
+
+| Confidence | Breaches expected | Breaches observed | |
+|---|---|---|---|
+| 95% | 5.00% | **5.21%** | well calibrated |
+| 99% | 1.00% | **1.86%** | ~2× too many |
+| 99.9% | 0.10% | **0.59%** | ~6× too many |
+
+**The normal assumption degrades the further into the tail you push it.** At 95% the
+model is essentially right. At 99% it breaches nearly twice as often as advertised, and
+at 99.9% almost six times as often — a portfolio manager relying on the deep-tail number
+would be materially under-reserved.
+
+This is the fat-tails problem made concrete. The return distribution shown above has
+more mass far from the mean than a normal distribution does, and parametric VaR prices
+that mass at zero. It also explains the ordering in the VaR comparison: historical
+simulation, which reads the tail off what actually happened rather than assuming a
+shape, produces the largest and most conservative estimate of the three.
+
+!!! note "Why this matters more than the point estimate"
+    A VaR figure with no backtest is an assertion. The Basel framework requires banks
+    to backtest exactly this way and penalises models that breach too often - so the
+    interesting output here is not "4.11%", it is "4.11%, and here is how often that
+    class of estimate has been wrong."
+
 ## Component risk
 
 Setting the exposure vector to isolate each factor:

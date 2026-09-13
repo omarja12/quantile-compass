@@ -53,6 +53,23 @@ age-weighted is lowest because it discounts them in favour of the recent calm re
 The gap between them measures how much the answer depends on that choice rather than
 on the data.
 
+**And the model is backtested, not just asserted.**
+
+![VaR through time with breaches marked](docs/assets/var_backtest.png)
+
+Because the EWMA estimates carry no look-ahead, each day's VaR is what the model would
+actually have forecast that morning — so it can be checked against what happened next.
+Over 4,738 tested days:
+
+| Confidence | Expected breaches | Observed | |
+|---|---|---|---|
+| 95% | 5.00% | **5.21%** | well calibrated |
+| 99% | 1.00% | **1.86%** | ~2× too many |
+| 99.9% | 0.10% | **0.59%** | ~6× too many |
+
+The normal assumption behind parametric VaR holds up mid-distribution and degrades the
+further into the tail you push it — fat tails, measured rather than asserted.
+
 ## Quick start
 
 ```bash
