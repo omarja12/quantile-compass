@@ -18,7 +18,7 @@ currency component, tracks the volatility and correlation of each over twenty ye
 spanning four crises, and compares three ways of answering the same question: *how
 much could this lose tomorrow?*
 
-📊 **[Full documentation and results →](https://omarja12.github.io/quantile-compass/)**
+🎛️ **[Try the live app →](https://quantile-compass-n5y28ojjmzrnriql57pvvd.streamlit.app/)** &nbsp;·&nbsp; 📊 **[Documentation and results →](https://omarja12.github.io/quantile-compass/)**
 
 ---
 

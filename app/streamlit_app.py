@@ -88,13 +88,44 @@ st.title("Quantile Compass")
 st.caption("Value-at-Risk for a multi-currency equity portfolio, held by a ruble-based investor.")
 
 with st.sidebar:
-    st.header("Parameters")
-    confidence = st.slider("Confidence level (%)", 90.0, 99.9, 99.0, step=0.1)
+    st.header("VaR settings")
+    st.caption("These change the risk numbers above, not the volatility and correlation charts.")
+    confidence = st.slider(
+        "Confidence level (%)",
+        90.0,
+        99.9,
+        99.0,
+        step=0.1,
+        help="How far into the loss tail to look. Moves the VaR figures and the "
+        "threshold lines on the return distribution - it cannot change how "
+        "volatile the market actually was.",
+    )
     alpha = 1 - confidence / 100
-    lam = st.slider("EWMA decay (λ)", 0.80, 0.99, 0.94, step=0.01)
-    horizon = st.slider("Horizon (trading days)", 1, 20, 1)
+    horizon = st.slider(
+        "Horizon (trading days)",
+        1,
+        20,
+        1,
+        help="Scales the 1-day VaR by the square root of time. Affects the VaR figures only.",
+    )
+
+    st.divider()
+    st.header("Model")
+    st.caption("Changes the volatility and correlation estimates, and so the VaR too.")
+    lam = st.slider(
+        "EWMA decay (λ)",
+        0.80,
+        0.99,
+        0.94,
+        step=0.01,
+        help="How fast the volatility estimate forgets. Lower reacts to shocks faster "
+        "and is spikier; higher is smoother and slower. Try 0.80 vs 0.99 and watch "
+        "the volatility chart change shape.",
+    )
+
     st.divider()
     st.header("Portfolio")
+    st.caption("Re-runs the whole decomposition, so everything on the page responds.")
     w_us = st.slider("US equity weight", 0.0, 1.0, 0.6, step=0.05)
     beta_us = st.slider("US beta", 0.5, 2.5, 1.6, step=0.1)
     beta_de = st.slider("German beta", 0.5, 2.5, 1.3, step=0.1)
@@ -155,6 +186,10 @@ with tab_vol:
         yaxis_title="EWMA annualised volatility (%)", height=460, hovermode="x unified"
     )
     st.plotly_chart(fig, use_container_width=True)
+    st.caption(
+        f"Estimated with λ = {lam:.2f}. Responds to the decay and portfolio controls; "
+        "the confidence level and horizon do not affect it."
+    )
 
 with tab_corr:
     fig = go.Figure()
@@ -174,8 +209,8 @@ with tab_corr:
     )
     st.plotly_chart(fig, use_container_width=True)
     st.caption(
-        "Negative correlation means currency depreciation offsets equity losses - a natural hedge "
-        "for a ruble-based investor holding foreign equities."
+        f"Estimated with λ = {lam:.2f}. Negative correlation means currency depreciation offsets "
+        "equity losses - a natural hedge for a ruble-based investor holding foreign equities."
     )
 
 with tab_dist:
@@ -188,6 +223,10 @@ with tab_dist:
         fig.add_vline(x=value, line_color=color, line_dash="dash", annotation_text=name)
     fig.update_layout(xaxis_title="Daily portfolio return (%)", yaxis_title="Frequency", height=460)
     st.plotly_chart(fig, use_container_width=True)
+    st.caption(
+        f"Dashed lines mark the 1-day VaR thresholds at {confidence:.1f}% confidence - raise the "
+        "confidence level and watch them move further into the tail."
+    )
 
 with tab_factors:
     prices = load_prices()
@@ -202,7 +241,8 @@ with tab_factors:
         fig.update_layout(yaxis_title=choice, height=460, hovermode="x unified")
         st.plotly_chart(fig, use_container_width=True)
         st.caption(
-            "Supplementary series are shown for context; they are not part of the weighted portfolio."
+            "Raw market context, not part of the weighted portfolio - so this chart is the one "
+            "thing on the page the sidebar controls deliberately do not change."
         )
     else:
         st.info("No supplementary series in the current dataset.")

@@ -3,6 +3,10 @@
 The Streamlit app lets you change the parameters and watch the estimates move,
 rather than reading fixed numbers off a page.
 
+[Open the live app :material-open-in-new:](https://quantile-compass-n5y28ojjmzrnriql57pvvd.streamlit.app/){ .md-button .md-button--primary }
+
+Or run it yourself:
+
 ```bash
 pip install -e ".[app]"
 streamlit run app/streamlit_app.py
