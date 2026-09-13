@@ -22,7 +22,11 @@ if _SRC.is_dir() and str(_SRC) not in sys.path:
 
 from quantile_compass.data import DEFAULT_DATA_PATH, prepare_dataset  # noqa: E402
 from quantile_compass.fetch_data import build_dataset  # noqa: E402
-from quantile_compass.returns import PortfolioSpec, decompose_portfolio_returns  # noqa: E402
+from quantile_compass.returns import (  # noqa: E402
+    PortfolioSpec,
+    compute_log_returns,
+    decompose_portfolio_returns,
+)
 from quantile_compass.var import (  # noqa: E402
     age_weighted_historical_var,
     historical_var,
@@ -232,17 +236,51 @@ with tab_factors:
     prices = load_prices()
     extras = [c for c in ["SP500", "VIX", "GOLD"] if c in prices.columns]
     if extras:
-        choice = st.selectbox("Supplementary risk factor", extras)
+        choice = st.selectbox(
+            "Compare against",
+            extras,
+            help="A market series outside the portfolio, to put its risk in context.",
+        )
+        factor_vol = annualize_volatility(
+            ewma_volatility(compute_log_returns(prices[choice]).dropna(), lam=lam)
+        )
+
         fig = go.Figure()
         fig.add_scatter(
-            x=prices.index, y=prices[choice], name=choice, line=dict(color="#0891b2", width=1.2)
+            x=frame.index,
+            y=frame["equity_vol"] * 100,
+            name="Portfolio equity",
+            line=dict(color="#2563eb", width=1.3),
+        )
+        fig.add_scatter(
+            x=factor_vol.index,
+            y=factor_vol * 100,
+            name=choice,
+            line=dict(color="#0891b2", width=1.3),
         )
         shade(fig)
-        fig.update_layout(yaxis_title=choice, height=460, hovermode="x unified")
+        fig.update_layout(
+            yaxis_title="EWMA annualised volatility (%)", height=430, hovermode="x unified"
+        )
         st.plotly_chart(fig, use_container_width=True)
         st.caption(
-            "Raw market context, not part of the weighted portfolio - so this chart is the one "
-            "thing on the page the sidebar controls deliberately do not change."
+            f"{choice} volatility against the portfolio's equity leg, both estimated with "
+            f"λ = {lam:.2f} - so this chart responds to the decay slider too."
         )
+        if choice == "VIX":
+            st.caption(
+                "Note that the VIX is itself a volatility index, so this line is the volatility "
+                "*of* implied volatility - expect it to sit much higher than the others."
+            )
+
+        with st.expander(f"{choice} price level"):
+            fig2 = go.Figure()
+            fig2.add_scatter(
+                x=prices.index, y=prices[choice], name=choice, line=dict(color="#0891b2", width=1.2)
+            )
+            shade(fig2)
+            fig2.update_layout(yaxis_title=choice, height=380, hovermode="x unified")
+            st.plotly_chart(fig2, use_container_width=True)
+            st.caption("The raw series, for reference - price levels don't depend on the model.")
     else:
         st.info("No supplementary series in the current dataset.")
