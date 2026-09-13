@@ -54,6 +54,13 @@ percentage points depending purely on how you weight history.
 
 ---
 
+## Try it
+
+[Open the live app :material-open-in-new:](https://quantile-compass-n5y28ojjmzrnriql57pvvd.streamlit.app/){ .md-button .md-button--primary }
+
+Change the confidence level, the EWMA decay or the portfolio weights and watch the
+estimates move.
+
 ## Getting started
 
 ```bash
@@ -61,10 +68,7 @@ git clone https://github.com/omarja12/quantile-compass.git
 cd quantile-compass
 pip install -e ".[app,dev]"
 
-# fetch the dataset (not committed - the repo ships the fetcher)
-python -m quantile_compass.fetch_data
-
-# run the interactive explorer
+# the app fetches the dataset itself on first run
 streamlit run app/streamlit_app.py
 ```
 
