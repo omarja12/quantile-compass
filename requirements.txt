@@ -1,22 +1,15 @@
-# Core analysis
+# Runtime dependencies for the Streamlit app. This is the file Streamlit
+# Community Cloud installs, so it is deliberately kept to what the app needs
+# at runtime - nothing for tests, notebooks or the docs site.
+#
+# For development, install the extras instead:
+#     pip install -e ".[app,dev,docs]"
+
 pandas>=2.0
 numpy>=1.24
 scipy>=1.10
 matplotlib>=3.7
-seaborn>=0.13
 yfinance>=0.2
 
-# Interactive app
 streamlit>=1.30
 plotly>=5.18
-
-# Notebook
-jupyter>=1.0
-
-# Development
-pytest>=8.0
-ruff>=0.4
-
-# Documentation site
-mkdocs-material>=9.5
-mkdocstrings[python]>=0.24
