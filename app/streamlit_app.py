@@ -4,23 +4,32 @@ Quantile Compass - interactive VaR explorer.
 Run with:
     streamlit run app/streamlit_app.py
 """
+
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from quantile_compass.data import DEFAULT_DATA_PATH, prepare_dataset
-from quantile_compass.returns import PortfolioSpec, decompose_portfolio_returns
-from quantile_compass.var import (
+# Make the package importable when the app runs straight from a checkout with
+# no install - which is what Streamlit Community Cloud does.
+_SRC = Path(__file__).resolve().parents[1] / "src"
+if _SRC.is_dir() and str(_SRC) not in sys.path:
+    sys.path.insert(0, str(_SRC))
+
+from quantile_compass.data import DEFAULT_DATA_PATH, prepare_dataset  # noqa: E402
+from quantile_compass.fetch_data import build_dataset  # noqa: E402
+from quantile_compass.returns import PortfolioSpec, decompose_portfolio_returns  # noqa: E402
+from quantile_compass.var import (  # noqa: E402
     age_weighted_historical_var,
     historical_var,
     parametric_var,
     scale_var_horizon,
 )
-from quantile_compass.volatility import (
+from quantile_compass.volatility import (  # noqa: E402
     annualize_volatility,
     covariance_matrix,
     ewma_correlation,
@@ -39,11 +48,24 @@ CRISES = {
 
 @st.cache_data(show_spinner=False)
 def load_prices() -> pd.DataFrame:
+    """
+    Load the dataset, fetching it first if this environment doesn't have one.
+
+    The repo ships the fetch script rather than the data, so a fresh deploy
+    (Streamlit Community Cloud included) starts with nothing on disk.
+    """
+    if not Path(DEFAULT_DATA_PATH).exists():
+        with st.spinner("Fetching market data - first run only, this takes a moment..."):
+            frame = build_dataset()
+            DEFAULT_DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
+            frame.to_csv(DEFAULT_DATA_PATH)
     return prepare_dataset()
 
 
 @st.cache_data(show_spinner=False)
-def compute(lam: float, w_us: float, beta_us: float, beta_de: float) -> tuple[pd.DataFrame, pd.DataFrame]:
+def compute(
+    lam: float, w_us: float, beta_us: float, beta_de: float
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     prices = load_prices()
     spec = PortfolioSpec(w_us=w_us, w_de=round(1 - w_us, 10), beta_us=beta_us, beta_de=beta_de)
     returns = decompose_portfolio_returns(prices, spec=spec)
@@ -62,13 +84,6 @@ def shade(fig: go.Figure) -> None:
         fig.add_vrect(x0=start, x1=end, fillcolor="gray", opacity=0.15, line_width=0)
 
 
-if not Path(DEFAULT_DATA_PATH).exists():
-    st.error(
-        "No dataset found. Fetch it first:\n\n"
-        "```\npython -m quantile_compass.fetch_data\n```"
-    )
-    st.stop()
-
 st.title("Quantile Compass")
 st.caption("Value-at-Risk for a multi-currency equity portfolio, held by a ruble-based investor.")
 
@@ -85,12 +100,24 @@ with st.sidebar:
     beta_de = st.slider("German beta", 0.5, 2.5, 1.3, step=0.1)
     st.caption(f"German equity weight: {1 - w_us:.2f}")
 
-returns, frame = compute(lam, w_us, beta_us, beta_de)
+try:
+    returns, frame = compute(lam, w_us, beta_us, beta_de)
+except Exception as exc:  # noqa: BLE001 - surface any data problem to the user, not a traceback
+    st.error(
+        "Could not load the market data. The data source may be rate-limiting or "
+        "temporarily unavailable - try reloading in a minute.\n\n"
+        "Running locally? Fetch the dataset directly with "
+        "`python -m quantile_compass.fetch_data`."
+    )
+    st.caption(f"Details: {type(exc).__name__}: {exc}")
+    st.stop()
 
 cov = covariance_matrix(returns["equity"], returns["forex"], lam=lam)
 var_param = scale_var_horizon(parametric_var([1, 1], cov, alpha=alpha), horizon)
 var_hist = scale_var_horizon(historical_var(returns["total"], alpha=alpha), horizon)
-var_aged = scale_var_horizon(age_weighted_historical_var(returns["total"], alpha=alpha, lam=lam), horizon)
+var_aged = scale_var_horizon(
+    age_weighted_historical_var(returns["total"], alpha=alpha, lam=lam), horizon
+)
 
 st.subheader(f"{horizon}-day VaR at {confidence:.1f}% confidence")
 c1, c2, c3, c4 = st.columns(4)
@@ -111,18 +138,40 @@ tab_vol, tab_corr, tab_dist, tab_factors = st.tabs(
 
 with tab_vol:
     fig = go.Figure()
-    fig.add_scatter(x=frame.index, y=frame["equity_vol"] * 100, name="Equity", line=dict(color="#2563eb", width=1.3))
-    fig.add_scatter(x=frame.index, y=frame["forex_vol"] * 100, name="Forex", line=dict(color="#db2777", width=1.3))
+    fig.add_scatter(
+        x=frame.index,
+        y=frame["equity_vol"] * 100,
+        name="Equity",
+        line=dict(color="#2563eb", width=1.3),
+    )
+    fig.add_scatter(
+        x=frame.index,
+        y=frame["forex_vol"] * 100,
+        name="Forex",
+        line=dict(color="#db2777", width=1.3),
+    )
     shade(fig)
-    fig.update_layout(yaxis_title="EWMA annualised volatility (%)", height=460, hovermode="x unified")
+    fig.update_layout(
+        yaxis_title="EWMA annualised volatility (%)", height=460, hovermode="x unified"
+    )
     st.plotly_chart(fig, use_container_width=True)
 
 with tab_corr:
     fig = go.Figure()
-    fig.add_scatter(x=frame.index, y=frame["correlation"], name="Correlation", line=dict(color="#d97706", width=1.3))
+    fig.add_scatter(
+        x=frame.index,
+        y=frame["correlation"],
+        name="Correlation",
+        line=dict(color="#d97706", width=1.3),
+    )
     fig.add_hline(y=0, line_dash="dash", line_color="gray")
     shade(fig)
-    fig.update_layout(yaxis_title="EWMA equity-forex correlation", yaxis_range=[-1, 1], height=460, hovermode="x unified")
+    fig.update_layout(
+        yaxis_title="EWMA equity-forex correlation",
+        yaxis_range=[-1, 1],
+        height=460,
+        hovermode="x unified",
+    )
     st.plotly_chart(fig, use_container_width=True)
     st.caption(
         "Negative correlation means currency depreciation offsets equity losses - a natural hedge "
@@ -146,10 +195,14 @@ with tab_factors:
     if extras:
         choice = st.selectbox("Supplementary risk factor", extras)
         fig = go.Figure()
-        fig.add_scatter(x=prices.index, y=prices[choice], name=choice, line=dict(color="#0891b2", width=1.2))
+        fig.add_scatter(
+            x=prices.index, y=prices[choice], name=choice, line=dict(color="#0891b2", width=1.2)
+        )
         shade(fig)
         fig.update_layout(yaxis_title=choice, height=460, hovermode="x unified")
         st.plotly_chart(fig, use_container_width=True)
-        st.caption("Supplementary series are shown for context; they are not part of the weighted portfolio.")
+        st.caption(
+            "Supplementary series are shown for context; they are not part of the weighted portfolio."
+        )
     else:
         st.info("No supplementary series in the current dataset.")
